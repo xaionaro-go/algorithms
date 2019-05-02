@@ -1,7 +1,6 @@
 package genetic
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -9,25 +8,40 @@ import (
 	"github.com/xaionaro-go/algorithms/tsp/task"
 )
 
-func TestSolverTimeComplexity(t *testing.T) {
-	timeComplexity := task.CheckTimeComplexity(New(), time.Second)
-	assert.True(t, timeComplexity < -1, fmt.Sprintf("%v", timeComplexity))
+func TestSolverCorrectness(t *testing.T) {
+	assert.NoError(t, task.CheckSolver(New(), 8, 60*time.Second))
+}
+
+func init() {
+	task.GenerateBenchmarkTasks()
 }
 
 func BenchmarkSolver_cities4(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		task.CheckSolver(New(), 4, time.Second)
-	}
+	task.DoBenchmark(b, New(), 4)
 }
 
 func BenchmarkSolver_cities6(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		task.CheckSolver(New(), 6, time.Second)
-	}
+	task.DoBenchmark(b, New(), 6)
 }
 
+/*
 func BenchmarkSolver_cities8(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		task.CheckSolver(New(), 8, time.Second)
-	}
+	task.DoBenchmark(b, New(), 8)
 }
+
+func BenchmarkSolver_cities10(b *testing.B) {
+	task.DoBenchmark(b, New(), 10)
+}
+
+func BenchmarkSolver_cities11(b *testing.B) {
+	task.DoBenchmark(b, New(), 11)
+}
+
+func BenchmarkSolver_cities12(b *testing.B) {
+	task.DoBenchmark(b, New(), 12)
+}
+
+func BenchmarkSolver_cities13(b *testing.B) {
+	task.DoBenchmark(b, New(), 13)
+}
+*/

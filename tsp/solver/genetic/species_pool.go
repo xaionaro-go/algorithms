@@ -8,22 +8,21 @@ import (
 
 type SpeciesPool struct {
 	*sync.Pool
+	worker *worker
 }
 
-func newSpeciesPool(t *task.Task) *SpeciesPool {
-	speciesPool := &SpeciesPool{&sync.Pool{}}
+func newSpeciesPool(w *worker, t *task.Task) *SpeciesPool {
+	speciesPool := &SpeciesPool{Pool: &sync.Pool{}, worker: w}
 	speciesPool.New = func() interface{} {
 		species := &Species{
 			task:             t,
+			worker:           speciesPool.worker,
 			pool:             speciesPool,
-			path:             make(task.Path, 0, 2*len(t.Cities)),
+			path:             &[]task.Path{make(task.Path, 0, 2*len(t.Cities))}[0],
 			cityCount:        make([]uint32, len(t.Cities)),
-			notVisitedCityID: make([]uint32, 0, len(t.Cities)),
+			notVisitedCityID: make([]uint32, len(t.Cities)),
 		}
-		for idx, city := range t.Cities {
-			species.cityCount[city.ID] = 0
-			species.notVisitedCityID[idx] = city.ID
-		}
+		species.Reset()
 
 		return species
 	}
@@ -31,9 +30,15 @@ func newSpeciesPool(t *task.Task) *SpeciesPool {
 }
 
 func (pool *SpeciesPool) Get() *Species {
-	return pool.Pool.Get().(*Species)
+	species := pool.Pool.Get().(*Species)
+	if species.inUse {
+		panic(`Concurrent use of one species :(`)
+	}
+	species.inUse = true
+	return species
 }
 
 func (pool *SpeciesPool) Put(x *Species) {
+	x.inUse = false
 	pool.Pool.Put(x)
 }

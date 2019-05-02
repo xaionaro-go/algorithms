@@ -33,6 +33,9 @@ func (s Cities) Sort() {
 type Path []*Route
 
 func (path Path) Cost() (result float64) {
+	if path == nil {
+		return 0
+	}
 	for _, route := range path {
 		result += route.Cost
 	}
@@ -49,6 +52,11 @@ func (path Path) String() string {
 	}
 
 	return strings.Join(nodes, `>`) + " " + strconv.FormatFloat(path.Cost(), 'f', 5, 64)
+}
+
+func (path *Path) Append(appendPath Path) *Path {
+	*path = append(*path, appendPath...)
+	return path
 }
 
 type Route struct {

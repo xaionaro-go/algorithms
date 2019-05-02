@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/xaionaro-go/algorithms/tsp/task"
 	"math"
-	"math/rand"
 )
 
 type worker struct {
@@ -22,6 +21,18 @@ func newWorker(ctx context.Context, t *task.Task) *worker {
 	}
 }
 
+func (w *worker) isTimedOut() bool {
+	if w.tick&0xffff == 0 {
+		select {
+		case <-w.ctx.Done(): // timeout
+			return true
+		default:
+		}
+	}
+	return false
+}
+
+// Find any solution (but fast)
 func (w *worker) findSimplePath(
 	cityCount []int,
 	curPath *task.Path,
@@ -44,12 +55,9 @@ func (w *worker) findSimplePath(
 		return result, curCost
 	}
 
-	if rand.Intn(1000) == 0 {
-		select {
-		case <-w.ctx.Done(): // timeout
-			return nil, math.Inf(-1)
-		default:
-		}
+	w.tick++
+	if w.isTimedOut() {
+		return nil, math.Inf(-1)
 	}
 
 	if cityCount == nil {
@@ -85,6 +93,7 @@ func (w *worker) findSimplePath(
 	return nil, -1 // a dead-end
 }
 
+// Find the cheapest solution
 func (w *worker) findCheapestPath(
 	cityCount []int,
 	uselessCityCount *[]int,
@@ -109,12 +118,8 @@ func (w *worker) findCheapestPath(
 	}
 
 	w.tick++
-	if w.tick&0xffff == 0 {
-		select {
-		case <-w.ctx.Done(): // timeout
-			return nil, math.Inf(-1)
-		default:
-		}
+	if w.isTimedOut() {
+		return nil, math.Inf(-1)
 	}
 
 	if curPath == nil {

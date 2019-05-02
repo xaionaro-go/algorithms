@@ -3,6 +3,7 @@ package bruteforce
 import (
 	"context"
 	"github.com/xaionaro-go/algorithms/tsp/task"
+	"math"
 	"sort"
 )
 
@@ -24,13 +25,15 @@ func (solver *Solver) SortTaskDataForSimple(t *task.Task) {
 }
 
 func (solver *Solver) SortTaskDataForFull(t *task.Task) {
-	averageInRouteCost := make([]float64, len(t.Cities))
+	minimalInRouteCost := make([]float64, len(t.Cities))
 	for _, city := range t.Cities {
-		sumCost := float64(0)
+		min := city.InRoutes[0].Cost
 		for _, route := range city.InRoutes {
-			sumCost += route.Cost
+			if min > route.Cost {
+				min = route.Cost
+			}
 		}
-		averageInRouteCost[city.ID] = sumCost / float64(len(city.InRoutes))
+		minimalInRouteCost[city.ID] = min
 	}
 	for _, city := range t.Cities {
 		sort.Slice(city.OutRoutes, func(i, j int) bool {
@@ -38,8 +41,8 @@ func (solver *Solver) SortTaskDataForFull(t *task.Task) {
 			bRoute := city.OutRoutes[j]
 			aCity := t.Cities[aRoute.EndCity.ID]
 			bCity := t.Cities[bRoute.EndCity.ID]
-			aScore := averageInRouteCost[city.ID] / aRoute.Cost / float64(len(aCity.InRoutes))
-			bScore := averageInRouteCost[city.ID] / bRoute.Cost / float64(len(bCity.InRoutes))
+			aScore := (1 + minimalInRouteCost[aCity.ID]/aRoute.Cost) / aRoute.Cost / aRoute.Cost / (1 + math.Log(float64(len(aCity.InRoutes))))
+			bScore := (1 + minimalInRouteCost[bCity.ID]/bRoute.Cost) / bRoute.Cost / bRoute.Cost / (1 + math.Log(float64(len(bCity.InRoutes))))
 			return aScore > bScore
 		})
 	}
@@ -99,14 +102,13 @@ func (solver *Solver) findSolutionParallel(ctxOrig context.Context, t *task.Task
 */
 
 func (solver *Solver) findSolutionSingle(ctx context.Context, t *task.Task) task.Path {
-	// The first: we need to find an any solution as fast as possible to understand some higher estimation of the cost
+	// The first: we need to find any solution as fast as possible to understand some higher estimation of the cost
 	solver.SortTaskDataForFull(t) // use the most attractive routes, first
-
 	w := newWorker(ctx, t)
 	_, simplePathCost := w.findSimplePath(nil, nil, 0)
 
-	// Then we brute force all the variants with the cost lower than the estimation (from the above line)
-	for _, divider := range []float64{1024, 128, 64, 32, 16, 8, 4, 2, 1} {
+	// Then we brute force all the variants with the cost lower than (or equal to) the estimation (from the above line)
+	for _, divider := range []float64{1024, 128, 64, 32, 16, 8, 4, 2, 1} { // but first we try to find a solution for my lower price (in case if the estimation was far from real)
 		path, _ := w.findCheapestPath(
 			nil,
 			nil,

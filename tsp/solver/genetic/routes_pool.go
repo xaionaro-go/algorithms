@@ -10,19 +10,19 @@ type RoutesPool struct {
 	*sync.Pool
 }
 
-func newRoutesPool(t *task.Task) *RoutesPool {
+func NewRoutesPool(t *task.Task) *RoutesPool {
 	routesPool := &RoutesPool{&sync.Pool{}}
 	routesPool.New = func() interface{} {
-		return task.Routes{}
+		return &task.Routes{}
 	}
 	return routesPool
 }
 
-func (pool *RoutesPool) Get() task.Routes {
-	return pool.Pool.Get().(task.Routes)
+func (pool *RoutesPool) Get() *task.Routes {
+	return pool.Pool.Get().(*task.Routes)
 }
 
-func (pool *RoutesPool) Put(x task.Routes) {
-	x = x[:0]
+func (pool *RoutesPool) Put(x *task.Routes) {
+	*x = (*x)[:0]
 	pool.Pool.Put(x)
 }
