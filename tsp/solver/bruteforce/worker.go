@@ -109,6 +109,9 @@ func (w *worker) findSimplePath(
 
 // Find the cheapest solution
 func (w *worker) findCheapestPath(
+	startCity *task.City,
+	endCity *task.City,
+	requireTotalCityCount int,
 	cityCount []int,
 	uselessCityCount *[]int,
 	totalCityCount int,
@@ -120,12 +123,12 @@ func (w *worker) findCheapestPath(
 	if curPath != nil {
 		city = (*curPath)[len(*curPath)-1].EndCity
 	} else {
-		city = w.task.StartCity
+		city = startCity
 	}
 
 	//fmt.Println(cityCount, uselessCityCount, totalCityCount, t.StartCity.ID, costLimit, curPath)
 
-	if totalCityCount == len(w.task.Cities) && city == w.task.StartCity {
+	if totalCityCount >= requireTotalCityCount && (city == endCity || endCity == nil) {
 		result := make(task.Path, len(*curPath))
 		copy(result, *curPath)
 		return result, curCost
@@ -148,6 +151,14 @@ func (w *worker) findCheapestPath(
 		uselessCityCount = &[][]int{make([]int, len(w.task.Cities))}[0]
 	}
 
+	var minimalCostLeft float64
+	if endCity == w.task.StartCity {
+		distance := requireTotalCityCount - totalCityCount - 1
+		if distance > 0 && len(w.cache.lastRoutesMinimalCost) > distance-1 {
+			minimalCostLeft = w.cache.lastRoutesMinimalCost[distance-1]
+		}
+	}
+
 	var cheapestPath task.Path
 	var cheapestCost float64
 	for _, route := range city.OutRoutes {
@@ -156,6 +167,9 @@ func (w *worker) findCheapestPath(
 		}
 		cacheCost := w.cache.GetCost(route.StartCity.ID, route.EndCity.ID)
 		if cacheCost > 0 && route.Cost > cacheCost {
+			continue
+		}
+		if minimalCostLeft > 0 && costLimit-(curCost+route.Cost) < minimalCostLeft {
 			continue
 		}
 
@@ -186,6 +200,9 @@ func (w *worker) findCheapestPath(
 		*curPath = append(*curPath, route)
 
 		path, cost := w.findCheapestPath(
+			startCity,
+			endCity,
+			requireTotalCityCount,
 			cityCount,
 			newUselessCityCount,
 			totalCityCount,
@@ -225,22 +242,6 @@ func (w *worker) findCheapestPath(
 	return cheapestPath, cheapestCost
 }
 
-func (w *worker) prepareCache() {
-	for _, city := range w.task.Cities {
-		for _, route := range city.OutRoutes {
-			_, cost := w.findSimplePath(
-				route.StartCity,
-				route.EndCity,
-				1,
-				nil,
-				nil,
-				0,
-				route.Cost*0.999,
-			)
-			if cost > 0 && cost < route.Cost {
-				//fmt.Println("found cheaper", route.StartCity.ID, route.EndCity.ID, cost, route.Cost, path)
-				w.cache.SetCost(route.StartCity.ID, route.EndCity.ID, cost)
-			}
-		}
-	}
+func (w *worker) prepareCache(costEstimation float64) {
+	w.cache.Prepare(w, costEstimation)
 }

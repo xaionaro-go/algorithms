@@ -52,7 +52,6 @@ func (solver *Solver) findSolutionSingle(ctx context.Context, t *task.Task) task
 	// The first: we need to find any solution as fast as possible to understand some higher estimation of the cost
 	solver.SortTaskDataForFull(t) // use the most attractive routes, first
 	w := newWorker(ctx, t)
-	w.prepareCache()
 
 	_, simplePathCost := w.findSimplePath(
 		t.StartCity,
@@ -64,9 +63,14 @@ func (solver *Solver) findSolutionSingle(ctx context.Context, t *task.Task) task
 		0,
 	)
 
+	w.prepareCache(simplePathCost)
+
 	// Then we brute force all the variants with the cost lower than (or equal to) the estimation (from the above line)
 	for _, divider := range []float64{1024, 128, 64, 32, 16, 8, 4, 2, 1} { // but first we try to find a solution for my lower price (in case if the estimation was far from real)
 		path, _ := w.findCheapestPath(
+			t.StartCity,
+			t.StartCity,
+			len(t.Cities),
 			nil,
 			nil,
 			0,

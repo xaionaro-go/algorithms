@@ -43,3 +43,7 @@ func BenchmarkSolver_cities12(b *testing.B) {
 func BenchmarkSolver_cities13(b *testing.B) {
 	task.DoBenchmark(b, New(), 13)
 }
+
+func BenchmarkSolver_cities14(b *testing.B) {
+	task.DoBenchmark(b, New(), 14)
+}
