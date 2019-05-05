@@ -1,3 +1,4 @@
+```
 goos: linux
 goarch: amd64
 pkg: github.com/xaionaro-go/algorithms/tsp/solver/bruteforce
@@ -11,3 +12,4 @@ BenchmarkSolver_cities13-8   	       1	1195843569 ns/op	 3682544 B/op	   51998 a
 BenchmarkSolver_cities14-8   	       1	1919115881 ns/op	 4623440 B/op	   63008 allocs/op
 PASS
 ok  	github.com/xaionaro-go/algorithms/tsp/solver/bruteforce	14.750s
+```
