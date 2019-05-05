@@ -13,6 +13,8 @@ type worker struct {
 	task         *task.Task
 	intSlicePool *intSlicePool
 	cache        *cache
+
+	nonsetCityIDsTempBuffer [backScanDepth]uint32
 }
 
 func newWorker(ctx context.Context, t *task.Task) *worker {
@@ -153,9 +155,24 @@ func (w *worker) findCheapestPath(
 
 	var minimalCostLeft float64
 	if endCity == w.task.StartCity {
-		distance := requireTotalCityCount - totalCityCount - 1
-		if distance > 0 && len(w.cache.lastRoutesMinimalCost) > distance-1 {
-			minimalCostLeft = w.cache.lastRoutesMinimalCost[distance-1]
+		distance := len(w.task.Cities) - totalCityCount
+		if distance == backScanDepth {
+			nonsetCityIdx := 0
+			for cityID, count := range cityCount {
+				if count == 0 {
+					w.nonsetCityIDsTempBuffer[nonsetCityIdx] = uint32(cityID)
+					nonsetCityIdx++
+				}
+			}
+
+			costLeft := w.cache.GetLastRoutesCost(w.nonsetCityIDsTempBuffer[:])
+			if costLeft > costLimit-curCost {
+				return nil, -1
+			}
+		}
+		distanceMinusOne := distance - 1
+		if distanceMinusOne > 0 && len(w.cache.lastRoutesMinimalCost) > distanceMinusOne-1 {
+			minimalCostLeft = w.cache.lastRoutesMinimalCost[distanceMinusOne-1]
 		}
 	}
 
