@@ -30,7 +30,7 @@ func (pool *intSlicePool) Get(l, c int) *[]int {
 }
 
 func (pool *intSlicePool) Put(s *[]int) {
-	(*s) = (*s)[:cap(*s)]
+	*s = (*s)[:cap(*s)]
 	for idx := range *s {
 		(*s)[idx] = 0
 	}

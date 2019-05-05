@@ -2,13 +2,13 @@
 goos: linux
 goarch: amd64
 pkg: github.com/xaionaro-go/algorithms/tsp/solver/bruteforce
-BenchmarkSolver_cities4-8          20000             81795 ns/op           25234 B/op        563 allocs/op
-BenchmarkSolver_cities6-8           2000            661759 ns/op           34649 B/op        652 allocs/op
-BenchmarkSolver_cities8-8            100          23593019 ns/op           49415 B/op        816 allocs/op
-BenchmarkSolver_cities10-8             5         336393035 ns/op           64155 B/op        918 allocs/op
-BenchmarkSolver_cities11-8             1        2996688701 ns/op           81600 B/op       1032 allocs/op
-BenchmarkSolver_cities12-8             1        12468774186 ns/op          92168 B/op       1098 allocs/op
-BenchmarkSolver_cities13-8             1        19351610248 ns/op          94912 B/op       1106 allocs/op
+BenchmarkSolver_cities4-8    	   20000	     87274 ns/op	   34342 B/op	     962 allocs/op
+BenchmarkSolver_cities6-8    	    5000	    265602 ns/op	   63926 B/op	    1681 allocs/op
+BenchmarkSolver_cities8-8    	     200	   6481720 ns/op	  119171 B/op	    2830 allocs/op
+BenchmarkSolver_cities10-8   	      20	  88749914 ns/op	  194497 B/op	    4191 allocs/op
+BenchmarkSolver_cities11-8   	       2	 844651113 ns/op	  256940 B/op	    5025 allocs/op
+BenchmarkSolver_cities12-8   	       1	2448357414 ns/op	  308104 B/op	    5986 allocs/op
+BenchmarkSolver_cities13-8   	       1	5137915905 ns/op	  396208 B/op	    7228 allocs/op
 PASS
-ok      github.com/xaionaro-go/algorithms/tsp/solver/bruteforce 44.760s
+ok  	github.com/xaionaro-go/algorithms/tsp/solver/bruteforce	17.965s
 ```

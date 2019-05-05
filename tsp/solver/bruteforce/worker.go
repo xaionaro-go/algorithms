@@ -2,8 +2,9 @@ package bruteforce
 
 import (
 	"context"
-	"github.com/xaionaro-go/algorithms/tsp/task"
 	"math"
+
+	"github.com/xaionaro-go/algorithms/tsp/task"
 )
 
 type worker struct {
@@ -11,6 +12,7 @@ type worker struct {
 	ctx          context.Context
 	task         *task.Task
 	intSlicePool *intSlicePool
+	cache        *cache
 }
 
 func newWorker(ctx context.Context, t *task.Task) *worker {
@@ -18,6 +20,7 @@ func newWorker(ctx context.Context, t *task.Task) *worker {
 		ctx:          ctx,
 		task:         t,
 		intSlicePool: newIntSlicePool(),
+		cache:        newCache(t),
 	}
 }
 
@@ -34,22 +37,26 @@ func (w *worker) isTimedOut() bool {
 
 // Find any solution (but fast)
 func (w *worker) findSimplePath(
+	startCity *task.City,
+	endCity *task.City,
+	requireTotalCount int,
 	cityCount []int,
 	curPath *task.Path,
 	curCost float64,
+	costLimit float64,
 ) (task.Path, float64) {
 	var city *task.City
 	if curPath != nil {
 		city = (*curPath)[len(*curPath)-1].EndCity
 	} else {
-		city = w.task.StartCity
+		city = startCity
 	}
 
 	if curPath == nil {
 		curPath = &task.Path{}
 	}
 
-	if len(*curPath) == len(w.task.Cities) && city == w.task.StartCity {
+	if len(*curPath) >= requireTotalCount && city == endCity {
 		result := make(task.Path, len(*curPath))
 		copy(result, *curPath)
 		return result, curCost
@@ -68,13 +75,20 @@ func (w *worker) findSimplePath(
 		if cityCount[route.EndCity.ID] != 0 {
 			continue // we already were in this city, skip it
 		}
+		if costLimit > 0 && curCost+route.Cost > costLimit {
+			continue
+		}
 
 		cityCount[route.EndCity.ID]++
 		*curPath = append(*curPath, route)
 		path, cost := w.findSimplePath(
+			startCity,
+			endCity,
+			requireTotalCount,
 			cityCount,
 			curPath,
 			curCost+route.Cost,
+			costLimit,
 		)
 
 		*curPath = (*curPath)[:len(*curPath)-1]
@@ -140,9 +154,13 @@ func (w *worker) findCheapestPath(
 		if costLimit > 0 && curCost+route.Cost > costLimit {
 			continue
 		}
+		cacheCost := w.cache.GetCost(route.StartCity.ID, route.EndCity.ID)
+		if cacheCost > 0 && route.Cost > cacheCost {
+			continue
+		}
 
 		// To prevent loops we remember all cities that we revisit without visiting any new/unvisited cities
-		// And if we return to the same (already visited) city without visiting any newre cities, then it
+		// And if we return to the same (already visited) city without visiting any new cities, then it
 		// was an useless loop.
 		if (*uselessCityCount)[route.EndCity.ID] != 0 {
 			continue // there's no point to return to this city
@@ -205,4 +223,24 @@ func (w *worker) findCheapestPath(
 	}
 
 	return cheapestPath, cheapestCost
+}
+
+func (w *worker) prepareCache() {
+	for _, city := range w.task.Cities {
+		for _, route := range city.OutRoutes {
+			_, cost := w.findSimplePath(
+				route.StartCity,
+				route.EndCity,
+				1,
+				nil,
+				nil,
+				0,
+				route.Cost*0.999,
+			)
+			if cost > 0 && cost < route.Cost {
+				//fmt.Println("found cheaper", route.StartCity.ID, route.EndCity.ID, cost, route.Cost, path)
+				w.cache.SetCost(route.StartCity.ID, route.EndCity.ID, cost)
+			}
+		}
+	}
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func TestSolverCorrectness(t *testing.T) {
-	assert.NoError(t, task.CheckSolver(New(), 8, time.Second))
+	assert.NoError(t, task.CheckSolver(New(), 8, 5*time.Second))
 }
 
 func init() {

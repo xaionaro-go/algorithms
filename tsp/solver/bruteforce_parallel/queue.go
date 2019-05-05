@@ -21,9 +21,9 @@ type queue struct {
 func NewQueue(jobSlicePool *jobSlicePool, sizePow uint32) *queue {
 	return &queue{
 		jobSlicePool: jobSlicePool,
-		size: 1 << sizePow,
-		idxMask: (1 << sizePow) - 1,
-		jobs: make([]*job, 1 << sizePow),
+		size:         1 << sizePow,
+		idxMask:      (1 << sizePow) - 1,
+		jobs:         make([]*job, 1<<sizePow),
 	}
 }
 
@@ -72,7 +72,7 @@ func (q *queue) DequeueAll() []*job {
 	readIdx &= q.idxMask
 
 	r := q.jobSlicePool.Get(uint(count))
-	for i:=uint32(0); i<uint32(count); i++ {
+	for i := uint32(0); i < uint32(count); i++ {
 		idx := (readIdx + i) & q.idxMask
 		job := q.jobs[idx]
 		r = append(r, job)
@@ -104,7 +104,7 @@ func (q *queue) Dequeue() *job {
 
 	job := q.jobs[readIdx]
 	if job == nil || job.args == nil || job.result == nil {
-		panic(fmt.Sprint(`should not happened: `, readIdx, q.readPointer & q.idxMask, q.writePointer & q.idxMask, q.count, job == nil, job == nil || job.args == nil, job == nil || job.result == nil))
+		panic(fmt.Sprint(`should not happened: `, readIdx, q.readPointer&q.idxMask, q.writePointer&q.idxMask, q.count, job == nil, job == nil || job.args == nil, job == nil || job.result == nil))
 	}
 	q.jobs[readIdx] = nil
 

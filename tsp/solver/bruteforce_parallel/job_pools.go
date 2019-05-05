@@ -113,7 +113,6 @@ func (pool *jobPool) Put(x *job) {
 	pool.pool.Put(x)
 }
 
-
 type jobSlicePool struct {
 	pool *sync.Pool
 }
