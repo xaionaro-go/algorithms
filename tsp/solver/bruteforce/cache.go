@@ -9,10 +9,11 @@ const (
 )
 
 type cache struct {
-	cityAmount            uint
-	cost                  []float64
-	lastRoutesMinimalCost []float64
-	lastRoutesCost        []float64
+	cityAmount               uint
+	cost                     []float64
+	lastRoutesMinimalCost    []float64
+	couldBeUsedForWalkAround []bool
+	lastRoutesCost           []float64
 
 	cityIDsTempBuffer [backScanDepth]uint32
 }
@@ -27,10 +28,11 @@ func pow(x, p int) int {
 
 func newCache(t *task.Task) *cache {
 	return &cache{
-		cityAmount:            uint(len(t.Cities)),
-		cost:                  make([]float64, len(t.Cities)*len(t.Cities)),
-		lastRoutesMinimalCost: make([]float64, len(t.Cities)/2),
-		lastRoutesCost:        make([]float64, pow(len(t.Cities)+1, backScanDepth)),
+		cityAmount:               uint(len(t.Cities)),
+		cost:                     make([]float64, len(t.Cities)*len(t.Cities)),
+		lastRoutesMinimalCost:    make([]float64, len(t.Cities)/2),
+		lastRoutesCost:           make([]float64, pow(len(t.Cities)+1, backScanDepth)),
+		couldBeUsedForWalkAround: make([]bool, len(t.Cities)*len(t.Cities)),
 	}
 }
 
@@ -78,6 +80,14 @@ func (c *cache) GetCost(startCityID, endCityID uint32) float64 {
 
 func (c *cache) GetLastRoutesCost(nonsetCities []uint32) float64 {
 	return c.lastRoutesCost[c.getPathIDByCityIDs(nonsetCities)]
+}
+
+func (c *cache) SetCouldBeUsedForWalkAround(startCityID, endCityID uint32) {
+	c.couldBeUsedForWalkAround[startCityID*uint32(c.cityAmount)+endCityID] = true
+}
+
+func (c *cache) GetCouldBeUsedForWalkAround(startCityID, endCityID uint32) bool {
+	return c.couldBeUsedForWalkAround[startCityID*uint32(c.cityAmount)+endCityID]
 }
 
 func (c *cache) cityCombinationsOfPath(path task.Path, size uint, fn func(cityIDs []uint32)) {
@@ -149,11 +159,13 @@ func (c *cache) cityCombinationsOfPath(path task.Path, size uint, fn func(cityID
 func (c *cache) Prepare(w *worker, totalCostEstimation float64) {
 	for _, city := range w.task.Cities {
 		for _, route := range city.OutRoutes {
-			_, cost := w.findSimplePath(
+			_, cost := w.findCheapestPath(
 				route.StartCity,
 				route.EndCity,
 				1,
 				nil,
+				nil,
+				0,
 				nil,
 				0,
 				route.Cost*0.999,
@@ -161,6 +173,36 @@ func (c *cache) Prepare(w *worker, totalCostEstimation float64) {
 			if cost > 0 && cost < route.Cost {
 				//fmt.Println("found cheaper", route.StartCity.ID, route.EndCity.ID, cost, route.Cost, path)
 				c.SetCost(route.StartCity.ID, route.EndCity.ID, cost)
+			}
+		}
+	}
+
+	for _, cityA := range w.task.Cities {
+		for _, cityB := range w.task.Cities {
+			_, estimationCost := w.findSimplePath(
+				cityA,
+				cityB,
+				1,
+				nil,
+				nil,
+				0,
+				totalCostEstimation,
+			)
+			path, _ := w.findCheapestPath(
+				cityA,
+				cityB,
+				1,
+				nil,
+				nil,
+				0,
+				nil,
+				0,
+				estimationCost,
+			)
+			if len(path) > 1 {
+				for _, route := range path {
+					c.SetCouldBeUsedForWalkAround(route.StartCity.ID, route.EndCity.ID)
+				}
 			}
 		}
 	}

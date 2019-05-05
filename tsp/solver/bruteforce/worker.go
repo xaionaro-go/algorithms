@@ -189,6 +189,9 @@ func (w *worker) findCheapestPath(
 		if minimalCostLeft > 0 && costLimit-(curCost+route.Cost) < minimalCostLeft {
 			continue
 		}
+		if requireTotalCityCount == len(w.task.Cities) && cityCount[route.EndCity.ID] != 0 && !w.cache.GetCouldBeUsedForWalkAround(route.StartCity.ID, route.EndCity.ID) {
+			continue
+		}
 
 		// To prevent loops we remember all cities that we revisit without visiting any new/unvisited cities
 		// And if we return to the same (already visited) city without visiting any new cities, then it
