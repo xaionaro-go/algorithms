@@ -25,12 +25,12 @@ ok  	github.com/xaionaro-go/algorithms/tsp/solver/approximate	29.028s
 
 Keep in mind:
 * For every city it solves 8 different tasks (so it show performance in 8 times less than real)
-* The most of the performance is utilized by normalization process (I was solving more common problem than classic TSP: there's random one-directional routes from random cities to random cities; so it's even unknown a cost of a travel from a specific city to a specific city).
-* There's no simplifications in the problem (like clusters of cities).
+* The most of the performance is utilized by normalization process (I was solving more common problem than classic TSP: there're just random one-directional routes from random cities to random cities; so for example costs of travels from specific cities to specific cities are unknown).
+* There's no simplifications in the problem (like clusters of cities). Just a cloud of cities in non-metric space.
 * Theoretically it should calculate quite precise.
 
 Performance optimizations:
-* Pre-calculate cost from every city to every city (the most CPU utilizing part)
+* Pre-calculation of costs from every city to every city (this part is the most CPU utilizing one)
 * Boundaries (for example an estimation of the maximal cost by a stupid solver) to reduce useless branching (of the bruteforcing process)
 * Estimate maximal cost by a stupid solver 
 * Sort routes by some stupid heuristics to reduce useless branching (of the bruteforcing process)
