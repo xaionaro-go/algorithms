@@ -177,13 +177,13 @@ func GenerateRiddle(cityAmount uint32, seed int64) (task *Task, solution Path) {
 	return
 }
 
-func checkSolution(task *Task, expectedSolution Path, proposedSolution Path) errors.SmartError {
+func checkSolution(task *Task, expectedSolution Path, proposedSolution Path, accuracyBacklash float64) errors.SmartError {
 	if len(proposedSolution) < len(task.Cities) {
 		return errors.InvalidArguments.Wrap(`invalid length of the solution`,
 			fmt.Sprint(len(proposedSolution), ` != `, len(expectedSolution)), proposedSolution, expectedSolution)
 	}
 
-	if expectedSolution.Cost() < proposedSolution.Cost() {
+	if expectedSolution.Cost() < proposedSolution.Cost()*(1 - accuracyBacklash) {
 		return errors.New(`bad solution (to high cost)`, expectedSolution, proposedSolution)
 	}
 
@@ -194,11 +194,11 @@ func checkSolution(task *Task, expectedSolution Path, proposedSolution Path) err
 	return nil
 }
 
-func CheckSolver(solver Solver, cityAmount uint32, durationLimit time.Duration) error {
+func CheckSolver(solver Solver, accuracyBacklash float64, cityAmount uint32, durationLimit time.Duration) error {
 	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(durationLimit))
 	for _, seed := range []int64{0, 1, 2, 3, 4, 5, 6, 7} {
 		task, solution := GenerateRiddle(cityAmount, seed)
-		err := checkSolution(task, solution, solver.FindSolution(ctx, task))
+		err := checkSolution(task, solution, solver.FindSolution(ctx, task), accuracyBacklash)
 		if err != nil {
 			return err.Wrap(`seed:`, seed)
 		}
