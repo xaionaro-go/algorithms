@@ -58,16 +58,28 @@ func BenchmarkFindPermutations9(b *testing.B) {
 	}
 }
 
-/*
 func BenchmarkFindPermutations10(b *testing.B) {
 	for i:=0; i<b.N; i++ {
 		FindPermutations(10)
 	}
 }
 
-func BenchmarkFindPermutations15(b *testing.B) {
+func BenchmarkFindPermutations11(b *testing.B) {
 	for i:=0; i<b.N; i++ {
-		FindPermutations(15)
+		FindPermutations(11)
+	}
+}
+
+func BenchmarkFindPermutations12(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		FindPermutations(12)
+	}
+}
+
+/*
+func BenchmarkFindPermutations13(b *testing.B) {
+	for i:=0; i<b.N; i++ {
+		FindPermutations(13)
 	}
 }
 */

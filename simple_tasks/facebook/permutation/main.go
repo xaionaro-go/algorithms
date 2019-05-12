@@ -14,73 +14,64 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 		return
 	}
 
-	idx := n*2 - numsLeft
+	setToArray := func(idx, v int, set bool) {
+		if set {
+			currentArray[idx] = v
+		} else {
+			numCount[v]--
+		}
+		sign := 1
+		if !set {
+			sign = -1
+		}
+		for i := 1; i <= n; i++ {
+			if i == v {
+				continue
+			}
+			if idx+1+i < len(nonpossibleValues) {
+				nIdx := idx + (1+i)*2
+				if nIdx >= len(nonpossibleValues) || currentArray[nIdx] != 0 {
+					nonpossibleValues[idx+1+i][i] += sign
+				}
+			}
+			if idx-1-i >= 0 {
+				nIdx := idx - (1+i)*2
+				if nIdx < 0 || currentArray[nIdx] != 0 {
+					nonpossibleValues[idx-1-i][i] += sign
+				}
+			}
+		}
+		if set {
+			numCount[v]++
+		} else {
+			currentArray[idx] = 0
+		}
+	}
+
+	idx := 0
+	for ; currentArray[idx] != 0; idx++ {}
+
 	for newV := 1; newV <= n; newV++ { // n
 		if nonpossibleValues[idx][newV] > 0 {
 			//fmt.Println("skip", newV, "not possible", nonpossibleValues[idx][newV], idx)
 			continue
 		}
-		if numCount[newV] >= 2 {
+		if numCount[newV] > 0 {
 			//fmt.Println("skip", newV, "count >= 2")
 			continue
 		}
-		if numCount[newV] == 1 {
-			hasThePair := false
-			if idx-newV-1 >= 0 {
-				if currentArray[idx-newV-1] == newV {
-					hasThePair = true
-				}
-			}
-			if idx+newV+1 < len(currentArray) {
-				if currentArray[idx+newV+1] == newV {
-					hasThePair = true
-				}
-			}
-			if !hasThePair {
-				//fmt.Println("skip", newV, "no pair")
-				continue
-			}
+		setToArray(idx, newV, true)
+		if idx+(newV+1) < len(currentArray) && currentArray[idx+(newV+1)] == 0 {
+			setToArray(idx+(newV+1), newV, true)
+			findPermutationsRecursive(n, numsLeft-2, currentArray, numCount, nonpossibleValues, results)
+			setToArray(idx+(newV+1), newV, false)
 		}
-		currentArray[idx] = newV
-		for i := 1; i <= n; i++ {
-			if i == newV {
-				continue
-			}
-			if idx+1+i < len(nonpossibleValues) {
-				nIdx := idx + (1+i)*2
-				if nIdx >= len(nonpossibleValues) || currentArray[nIdx] != 0 {
-					nonpossibleValues[idx+1+i][i]++
-				}
-			}
-			if idx-1-i >= 0 {
-				nIdx := idx - (1+i)*2
-				if nIdx < 0 || currentArray[nIdx] != 0 {
-					nonpossibleValues[idx-1-i][i]++
-				}
-			}
+		if idx-(newV+1) >= 0 && currentArray[idx-(newV+1)] == 0 {
+			setToArray(idx-(newV+1), newV, true)
+			findPermutationsRecursive(n, numsLeft-2, currentArray, numCount, nonpossibleValues, results)
+			setToArray(idx-(newV+1), newV, false)
 		}
-		numCount[newV]++
-		findPermutationsRecursive(n, numsLeft-1, currentArray, numCount, nonpossibleValues, results) // depth: O(n)
-		numCount[newV]--
-		currentArray[idx] = 0
-
-		for i := 1; i <= n; i++ {
-			if i == newV {
-				continue
-			}
-			if idx+1+i < len(nonpossibleValues) {
-				nIdx := idx + (1+i)*2
-				if nIdx >= len(nonpossibleValues) || currentArray[nIdx] != 0 {
-					nonpossibleValues[idx+1+i][i]--
-				}
-			}
-			if idx-1-i >= 0 {
-				nIdx := idx - (1+i)*2
-				if nIdx < 0 || currentArray[nIdx] != 0 {
-					nonpossibleValues[idx-1-i][i]--
-				}
-			}
-		}
+		setToArray(idx, newV, false)
 	}
 }
 
