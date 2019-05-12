@@ -47,13 +47,13 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 				continue
 			}
 			if idx+1+i < len(nonpossibleValues) {
-				nIdx := idx + 1 + (1+i)*2
+				nIdx := idx + (1+i)*2
 				if nIdx >= len(nonpossibleValues) || currentArray[nIdx] != 0 {
 					nonpossibleValues[idx+1+i][i]++
 				}
 			}
 			if idx-1-i >= 0 {
-				nIdx := idx - 1 - (1+i)*2
+				nIdx := idx - (1+i)*2
 				if nIdx < 0 || currentArray[nIdx] != 0 {
 					nonpossibleValues[idx-1-i][i]++
 				}
@@ -69,10 +69,16 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 				continue
 			}
 			if idx+1+i < len(nonpossibleValues) {
-				nonpossibleValues[idx+1+i][i]--
+				nIdx := idx + (1+i)*2
+				if nIdx >= len(nonpossibleValues) || currentArray[nIdx] != 0 {
+					nonpossibleValues[idx+1+i][i]--
+				}
 			}
 			if idx-1-i >= 0 {
-				nonpossibleValues[idx-1-i][i]--
+				nIdx := idx - (1+i)*2
+				if nIdx < 0 || currentArray[nIdx] != 0 {
+					nonpossibleValues[idx-1-i][i]--
+				}
 			}
 		}
 	}
