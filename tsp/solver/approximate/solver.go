@@ -26,6 +26,7 @@ func (solver *Solver) FindSolution(ctx context.Context, t *task.Task) task.Path 
 		t.StartCity,
 		t.StartCity,
 		requiredCityCount,
+		&task.Path{},
 	)
 
 	if path == nil {

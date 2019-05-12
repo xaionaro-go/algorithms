@@ -19,6 +19,7 @@ type worker struct {
 	tick         uint16
 	cache        *cache
 	intSlicePool *intSlicePool
+	pathPool     *pathPool
 }
 
 func newWorker(ctx context.Context, t *task.Task) *worker {
@@ -26,7 +27,9 @@ func newWorker(ctx context.Context, t *task.Task) *worker {
 		ctx:          ctx,
 		task:         t,
 		intSlicePool: newIntSlicePool(),
+		pathPool:     newPathPool(),
 	}
+	w.pathPool.DefaultSize = uint(len(t.Cities))
 	w.cache = newCache()
 	w.cache.prepare(w, t)
 	return w
@@ -52,7 +55,7 @@ func (w *worker) findCheapestPathFromCache(
 	curPath *task.Path,
 	curCost float64,
 	costLimit float64,
-) (task.Path, float64) {
+) (*task.Path, float64) {
 	var city *task.City
 	if len(*curPath) > 0 {
 		city = (*curPath)[len(*curPath)-1].EndCity
@@ -67,9 +70,9 @@ func (w *worker) findCheapestPathFromCache(
 		if routePath == nil {
 			return nil, -1 // a dead-end
 		}
-		result := make(task.Path, 0, len(*curPath)+len(routePath))
-		result = append(result, *curPath...)
-		result = append(result, routePath...)
+		result := w.pathPool.Get(uint(len(*curPath) + len(routePath)))
+		*result = append(*result, *curPath...)
+		*result = append(*result, routePath...)
 		//fmt.Println("win", requireCityCount, curCost+routeCost, result)
 		return result, curCost + routeCost
 	}
@@ -79,7 +82,7 @@ func (w *worker) findCheapestPathFromCache(
 		return nil, math.Inf(-1)
 	}*/
 
-	var cheapestPath task.Path
+	var cheapestPath *task.Path
 	var cheapestCost float64
 	for cityID, requireCount := range requireCityCount {
 		if requireCount <= 0 {
@@ -168,6 +171,7 @@ func (w *worker) findCheapestPathFromCache(
 			cheapestCost = cost
 			cheapestPath = path
 		} else if cost < cheapestCost {
+			w.pathPool.Put(cheapestPath)
 			cheapestCost = cost
 			cheapestPath = path
 		}
@@ -400,10 +404,10 @@ func (w *worker) findSimplePath(
 func (w *worker) findPath(
 	startCity *task.City,
 	endCity *task.City,
-	requiredCityCountOrig []int,
+	requiredCityCount []int,
+	path *task.Path,
 ) (task.Path, float64) {
-	requiredCityCount := make([]int, len(requiredCityCountOrig))
-	copy(requiredCityCount, requiredCityCountOrig)
+	*path = (*path)[:0]
 
 	citiesLeft := 0
 	for _, countLeft := range requiredCityCount {
@@ -413,7 +417,6 @@ func (w *worker) findPath(
 	}
 
 	curCity := startCity
-	var path task.Path
 	for citiesLeft > 0 {
 		bestScore := -math.MaxFloat64
 		var bestScorePath task.Path
@@ -435,8 +438,8 @@ func (w *worker) findPath(
 			if costFromCityToEnd <= 0 {
 				costFromCityToEnd = w.cache.GetMaxCost()
 			}
-			score := (costFromCityToEnd + float64(citiesLeft-1)/float64(len(w.task.Cities))*w.cache.GetAverageCost()) / costToCity
-			score = costFromCityToEnd / costToCity
+			//score := (costFromCityToEnd + float64(citiesLeft-1)/float64(len(w.task.Cities))*w.cache.GetAverageCost()) / costToCity
+			score := costFromCityToEnd / costToCity
 			//score = 1 / costToCity
 			if score > bestScore {
 				bestScore = score
@@ -446,22 +449,13 @@ func (w *worker) findPath(
 
 		if bestScore < 0 || len(bestScorePath) == 0 {
 			panic(fmt.Sprintln(`Unexpected situation`, path, curCity.ID, requiredCityCount, bestScore, bestScorePath))
-			uselessCityCount := make([]int, len(w.task.Cities))
-			path, cost := w.findCheapestPath(
-				startCity,
-				endCity,
-				requiredCityCount,
-				&uselessCityCount,
-				citiesLeft,
-				&path,
-				path.Cost(),
-				0,
+			/*path, cost := w.findCheapestPathFromCache(
 			)
 			fmt.Println("bruteforce", path, cost, citiesLeft, requiredCityCount)
-			return path, cost
+			return path, cost*/
 		}
 
-		path = append(path, bestScorePath...)
+		*path = append(*path, bestScorePath...)
 		for _, route := range bestScorePath {
 			if citiesLeft == 1 || route.EndCity.ID != endCity.ID {
 				requiredCityCount[route.EndCity.ID]--
@@ -476,10 +470,10 @@ func (w *worker) findPath(
 
 	if curCity != endCity {
 		lastMile, _ := w.cache.GetPath(curCity.ID, endCity.ID)
-		path = append(path, lastMile...)
+		*path = append(*path, lastMile...)
 	}
 
-	return path, path.Cost()
+	return *path, path.Cost()
 }
 
 func (w *worker) optimizePath(path task.Path) task.Path {
@@ -520,10 +514,18 @@ optimizePathLoop:
 				cityCount[cityID] = 1 - cityLeftCount[cityID]
 			}
 
-			otherPath, otherSegmentCost := w.findPath(w.task.StartCity, endCity, cityCount)
+			otherPath, otherSegmentCost := w.findPath(
+				w.task.StartCity,
+				endCity,
+				cityCount,
+				&pathTmp,
+			)
 			if otherSegmentCost > 0 && otherSegmentCost < curSegmentCost*0.9999 {
 				//fmt.Println("optimized: ", path[:idx+1], otherPath, curSegmentCost, path, cityCount)
-				path = append(otherPath, path[idx+1:]...)
+				newPath := make(task.Path, 0, len(otherPath)+len(path[idx+1:]))
+				newPath = append(newPath, otherPath...)
+				newPath = append(newPath, path[idx+1:]...)
+				path = newPath
 				if path.Cost() > oldCost {
 					panic(fmt.Sprintln(`Shouldn't happened'`, path, oldCost))
 				}
@@ -554,7 +556,7 @@ optimizePathLoop:
 			}
 
 			pathTmp = pathTmp[:0]
-			otherPath, otherSegmentCost = w.findCheapestPathFromCache(
+			otherPath2, otherSegmentCost := w.findCheapestPathFromCache(
 				subPath[0].StartCity,
 				subPath[len(subPath)-1].EndCity,
 				cityCount,
@@ -568,14 +570,16 @@ optimizePathLoop:
 				continue
 			}
 			if otherSegmentCost >= subPathCost*0.9999 {
+				w.pathPool.Put(otherPath2)
 				continue
 			}
 
 			//fmt.Println("bf optimized: ", idxS, idx, subPath, otherPath, path, cityCount, path[:idxS], otherPath, path[idx+1:], path[idxS:idx+1])
-			newPath := make(task.Path, 0, idxS+len(otherPath)+len(path)-idx)
+			newPath := make(task.Path, 0, idxS+len(*otherPath2)+len(path)-idx)
 			newPath = append(newPath, path[:idxS]...)
-			newPath = append(newPath, otherPath...)
+			newPath = append(newPath, *otherPath2...)
 			newPath = append(newPath, path[idx+1:]...)
+			w.pathPool.Put(otherPath2)
 			path = newPath
 			if path.Cost() > oldCost {
 				panic(fmt.Sprintln(`Shouldn't happened'`, path, oldCost))
