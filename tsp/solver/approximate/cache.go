@@ -8,12 +8,13 @@ import (
 )
 
 type cache struct {
-	cityAmount         uint
-	cost               []float64
-	path               []task.Path
-	maxCost            float64
-	avgCost            float64
-	routeEffectiveness []int
+	cityAmount           uint
+	cost                 []float64
+	path                 []task.Path
+	maxCost              float64
+	avgCost              float64
+	routeEffectiveness   []int
+	minimalLastRouteCost float64
 }
 
 func newCache() *cache {
@@ -91,7 +92,52 @@ func (c *cache) sortTaskData(minimalInRouteCost []float64, t *task.Task) {
 	}
 }
 
+func (c *cache) sortRoutesByDestinationAndCost(t *task.Task) {
+	for _, city := range t.Cities {
+		sort.Slice(city.OutRoutes, func(i, j int) bool {
+			aRoute := city.OutRoutes[i]
+			bRoute := city.OutRoutes[j]
+			aCity := t.Cities[aRoute.EndCity.ID]
+			bCity := t.Cities[bRoute.EndCity.ID]
+			if aCity.ID != bCity.ID {
+				return aCity.ID < bCity.ID
+			}
+			return aRoute.Cost < bRoute.Cost
+		})
+	}
+}
+
+func (c *cache) initialSortData(minimalInRouteCost []float64, t *task.Task) {
+	for _, city := range t.Cities {
+		sort.Slice(city.OutRoutes, func(i, j int) bool {
+			aRoute := city.OutRoutes[i]
+			bRoute := city.OutRoutes[j]
+			aCity := t.Cities[aRoute.EndCity.ID]
+			bCity := t.Cities[bRoute.EndCity.ID]
+			aScore := (1 + minimalInRouteCost[aCity.ID]/aRoute.Cost) / aRoute.Cost / aRoute.Cost / (1 + math.Log(float64(len(aCity.InRoutes))))
+			bScore := (1 + minimalInRouteCost[bCity.ID]/bRoute.Cost) / bRoute.Cost / bRoute.Cost / (1 + math.Log(float64(len(bCity.InRoutes))))
+			return aScore > bScore
+		})
+	}
+}
+
 func (c *cache) prepare(w *worker, t *task.Task) {
+	c.sortRoutesByDestinationAndCost(t)
+
+	for _, city := range t.Cities {
+		var newRoutes task.Routes
+		cmpRoute := city.OutRoutes[0]
+		newRoutes = append(newRoutes, cmpRoute)
+		for _, route := range city.OutRoutes[1:] {
+			if route.EndCity.ID == cmpRoute.EndCity.ID {
+				continue
+			}
+			newRoutes = append(newRoutes, route)
+			cmpRoute = route
+		}
+		city.OutRoutes = newRoutes
+	}
+
 	minimalInRouteCost := make([]float64, len(t.Cities))
 	for _, city := range t.Cities {
 		min := city.InRoutes[0].Cost
@@ -102,6 +148,8 @@ func (c *cache) prepare(w *worker, t *task.Task) {
 		}
 		minimalInRouteCost[city.ID] = min
 	}
+
+	c.initialSortData(minimalInRouteCost, t)
 
 	c.cityAmount = uint(len(t.Cities))
 	c.cost = make([]float64, c.cityAmount*c.cityAmount)
@@ -151,6 +199,7 @@ func (c *cache) prepare(w *worker, t *task.Task) {
 				&pathTmp,
 				0,
 				0,
+				5,
 			)
 
 			candidate.destination = cityB
@@ -225,10 +274,11 @@ func (c *cache) prepare(w *worker, t *task.Task) {
 			count++
 
 			for idxS, routeS := range path {
+				subPathCost := float64(0)
 				c.incrementRouteEffectiveness(routeS.StartCity.ID, routeS.EndCity.ID)
 				for idxE, routeE := range path[idxS:] {
 					subPath := path[idxS : idxS+idxE+1]
-					subPathCost := subPath.Cost()
+					subPathCost += routeE.Cost
 					oldPath, oldCost := c.GetPath(routeS.StartCity.ID, routeE.EndCity.ID)
 					if oldPath != nil && oldCost <= subPathCost {
 						continue

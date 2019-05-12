@@ -60,7 +60,7 @@ func (w *worker) findCheapestPathFromCache(
 		city = startCity
 	}
 
-	//fmt.Println(cityCountLeft, w.task.StartCity.ID, curCost, costLimit, *curPath, endCity.ID, requireCityCount)
+	//fmt.Println("C", cityCountLeft, w.task.StartCity.ID, curCost, costLimit, *curPath, endCity.ID, requireCityCount)
 
 	if cityCountLeft == 1 {
 		routePath, routeCost := w.cache.GetPath(city.ID, endCity.ID)
@@ -93,6 +93,7 @@ func (w *worker) findCheapestPathFromCache(
 		}
 
 		routePath, routeCost := w.cache.GetPath(city.ID, uint32(cityID))
+		//fmt.Println(cityCountLeft, cityID, requireCount, routePath, routeCost, curCost+routeCost, costLimit*1.0001)
 		if routeCost <= 0 {
 			continue
 		}
@@ -102,7 +103,7 @@ func (w *worker) findCheapestPathFromCache(
 
 		*curPath = append(*curPath, routePath...)
 
-		if len(cheapestPath) > 0 {
+		/*if len(cheapestPath) > 0 {
 			matches := true
 			for idx := range *curPath {
 				if len(cheapestPath) < idx+1 {
@@ -115,10 +116,11 @@ func (w *worker) findCheapestPathFromCache(
 				}
 			}
 			if matches {
+				fmt.Println(*curPath, "matches", cheapestPath)
 				*curPath = (*curPath)[:len(*curPath)-len(routePath)]
 				continue
 			}
-		}
+		}*/
 
 		newCostLimit := cheapestCost
 		if newCostLimit <= 0 {
@@ -161,6 +163,7 @@ func (w *worker) findCheapestPathFromCache(
 		if cost < 0 { // a dead-end
 			continue
 		}
+		//fmt.Println("new cheapest path", path)
 		if cheapestPath == nil {
 			cheapestCost = cost
 			cheapestPath = path
@@ -300,6 +303,7 @@ func (w *worker) findSimplePath(
 	curPath *task.Path,
 	curCost float64,
 	costLimit float64,
+	depthLimit int,
 ) (task.Path, float64) {
 	var city *task.City
 	if len(*curPath) > 0 {
@@ -314,6 +318,35 @@ func (w *worker) findSimplePath(
 		result := make(task.Path, len(*curPath))
 		copy(result, *curPath)
 		return result, curCost
+	}
+
+	if depthLimit == 0 {
+		return nil, -1 // a dead-end
+	}
+
+	if cityCountLeft <= 1 {
+		for _, route := range city.OutRoutes {
+			if route.EndCity.ID != endCity.ID {
+				continue
+			}
+			requiredCityCount[route.EndCity.ID]--
+			*curPath = append(*curPath, route)
+			path, cost := w.findSimplePath(
+				startCity,
+				endCity,
+				requiredCityCount,
+				cityCountLeft-1,
+				curPath,
+				curCost+route.Cost,
+				costLimit,
+				depthLimit-1,
+			)
+
+			*curPath = (*curPath)[:len(*curPath)-1]
+			requiredCityCount[route.EndCity.ID]++
+
+			return path, cost
+		}
 	}
 
 	/*
@@ -345,6 +378,7 @@ func (w *worker) findSimplePath(
 			curPath,
 			curCost+route.Cost,
 			costLimit,
+			depthLimit-1,
 		)
 
 		*curPath = (*curPath)[:len(*curPath)-1]
@@ -519,7 +553,6 @@ optimizePathLoop:
 				}
 			}
 
-			//fmt.Println("try bf", idxS, idx, subPath, cityCount, cityLeftCountForBruteforce)
 			pathTmp = pathTmp[:0]
 			otherPath, otherSegmentCost = w.findCheapestPathFromCache(
 				subPath[0].StartCity,
@@ -530,6 +563,7 @@ optimizePathLoop:
 				0,
 				subPathCost,
 			)
+			//fmt.Println("try bf", idxS, idx, subPath, cityCount, cityLeftCountForBruteforce, otherPath, otherSegmentCost)
 			if otherSegmentCost <= 0 {
 				continue
 			}

@@ -10,8 +10,8 @@ import (
 func TestSolverCorrectness(t *testing.T) {
 	assert.NoError(t, task.CheckSolver(New(), 0.0, 4, 5*time.Second))
 	assert.NoError(t, task.CheckSolver(New(), 0.0, 8, 5*time.Second))
-	assert.NoError(t, task.CheckSolver(New(), 0.05, 12, 5*time.Second))
-	assert.NoError(t, task.CheckSolver(New(), 0.05, 20, 5*time.Second))
+	assert.NoError(t, task.CheckSolver(New(), 0.0, 12, 5*time.Second))
+	assert.NoError(t, task.CheckSolver(New(), 0.0, 20, 5*time.Second))
 	assert.NoError(t, task.CheckSolver(New(), 0.0, 25, 5*time.Second))
 	assert.NoError(t, task.CheckSolver(New(), 0.0, 30, 5*time.Second))
 }
@@ -109,7 +109,6 @@ func BenchmarkSolver_cities95(b *testing.B) {
 	task.DoBenchmark(b, New(), 95)
 }
 
-/*
 func BenchmarkSolver_cities100(b *testing.B) {
 	task.DoBenchmark(b, New(), 100)
 }
@@ -117,10 +116,30 @@ func BenchmarkSolver_cities100(b *testing.B) {
 func BenchmarkSolver_cities120(b *testing.B) {
 	task.DoBenchmark(b, New(), 120)
 }
-*/
-/*
+
+func BenchmarkSolver_cities150(b *testing.B) {
+	task.DoBenchmark(b, New(), 150)
+}
+
+func BenchmarkSolver_cities200(b *testing.B) {
+	task.DoBenchmark(b, New(), 200)
+}
+
 func BenchmarkSolver_cities250(b *testing.B) {
 	task.DoBenchmark(b, New(), 250)
+}
+
+func BenchmarkSolver_cities350(b *testing.B) {
+	task.DoBenchmark(b, New(), 350)
+}
+
+func BenchmarkSolver_cities500(b *testing.B) {
+	task.DoBenchmark(b, New(), 500)
+}
+
+/*
+func BenchmarkSolver_cities750(b *testing.B) {
+	task.DoBenchmark(b, New(), 750)
 }
 
 func BenchmarkSolver_cities1000(b *testing.B) {

@@ -20,7 +20,7 @@ func GenerateBenchmarkTasks() {
 			benchmarkTasks[i] = append(benchmarkTasks[i], task)
 		}
 	}
-	for _, i := range []int{25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 95, 100, 120, 250, 1000} {
+	for _, i := range []int{25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 95, 100, 120, 150, 200, 250, 350, 500, 750, 1000} {
 		for _, seed := range []int64{0, 1, 2, 3, 4, 5, 6, 7} {
 			task, _ := GenerateRiddle(uint32(i), seed)
 			benchmarkTasks[i] = append(benchmarkTasks[i], task)
