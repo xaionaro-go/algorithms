@@ -17,9 +17,11 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 	idx := n*2 - numsLeft
 	for newV := 1; newV <= n; newV++ { // n
 		if nonpossibleValues[idx][newV] > 0 {
+			//fmt.Println("skip", newV, "not possible", nonpossibleValues[idx][newV], idx)
 			continue
 		}
 		if numCount[newV] >= 2 {
+			//fmt.Println("skip", newV, "count >= 2")
 			continue
 		}
 		if numCount[newV] == 1 {
@@ -35,6 +37,7 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 				}
 			}
 			if !hasThePair {
+				//fmt.Println("skip", newV, "no pair")
 				continue
 			}
 		}
@@ -44,10 +47,16 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 				continue
 			}
 			if idx+1+i < len(nonpossibleValues) {
-				nonpossibleValues[idx+1+i][i]++
+				nIdx := idx + 1 + (1+i)*2
+				if nIdx >= len(nonpossibleValues) || currentArray[nIdx] != 0 {
+					nonpossibleValues[idx+1+i][i]++
+				}
 			}
 			if idx-1-i >= 0 {
-				nonpossibleValues[idx-1-i][i]++
+				nIdx := idx - 1 - (1+i)*2
+				if nIdx < 0 || currentArray[nIdx] != 0 {
+					nonpossibleValues[idx-1-i][i]++
+				}
 			}
 		}
 		numCount[newV]++
@@ -87,4 +96,6 @@ func main() {
 	fmt.Println(FindPermutations(6))
 	fmt.Println(FindPermutations(7))
 	fmt.Println(FindPermutations(8))
+	fmt.Println(FindPermutations(9))
+	fmt.Println(FindPermutations(10))
 }
