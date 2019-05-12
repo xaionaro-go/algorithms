@@ -15,7 +15,7 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 	}
 
 	idx := n*2 - numsLeft
-	for newV := 1; newV <= n; newV++ {
+	for newV := 1; newV <= n; newV++ { // n
 		if nonpossibleValues[idx][newV] > 0 {
 			continue
 		}
@@ -51,7 +51,7 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 			}
 		}
 		numCount[newV]++
-		findPermutationsRecursive(n, numsLeft-1, currentArray, numCount, nonpossibleValues, results)
+		findPermutationsRecursive(n, numsLeft-1, currentArray, numCount, nonpossibleValues, results) // depth: O(n)
 		numCount[newV]--
 		currentArray[idx] = 0
 
