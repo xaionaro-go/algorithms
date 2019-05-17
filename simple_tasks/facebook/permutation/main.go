@@ -76,6 +76,8 @@ func findPermutationsRecursive(n int, numsLeft int, currentArray []int, numCount
 }
 
 func FindPermutations(n int) (results [][]int) {
+	// T: O(n!)
+
 	nonpossibleValues := make([][]int, n*2)
 	for idx := range nonpossibleValues {
 		nonpossibleValues[idx] = make([]int, n+1)
