@@ -52,5 +52,5 @@ func BenchmarkMy10w2(b *testing.B) {
 }
 
 func BenchmarkProposed10w2(b *testing.B) {
-	doBenchmark(b, slidingMaximum, 10, 2)
+	doBenchmark(b, slidingMaximum_fromSite, 10, 2)
 }
